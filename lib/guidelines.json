@@ -1,0 +1,77 @@
+{
+    "brandName": "BrandGuard Enterprise",
+    "version": "v2.4 (2026-Q4)",
+    "tone": "Clear, evidence-backed, inclusive, and transparent. Avoid exaggerated superlatives, unverified guarantees, or exclusionary idioms.",
+    "terminologyRules": [
+      {
+        "ruleId": "TERM-001",
+        "wrong": "Clients",
+        "preferred": "Partners",
+        "citation": "Guideline p.4, §2.1: We refer to all enterprise accounts as 'Partners' rather than 'Clients' to reflect collaborative governance.",
+        "severity": "MEDIUM"
+      },
+      {
+        "ruleId": "TERM-002",
+        "wrong": "customers",
+        "preferred": "members",
+        "citation": "Guideline p.4, §2.2: External community users must be referred to as 'members', never 'customers'.",
+        "severity": "MEDIUM"
+      },
+      {
+        "ruleId": "TERM-003",
+        "wrong": "health drinks",
+        "preferred": "nutritional malt-based beverages",
+        "citation": "Regulatory Rule Pack (DPIIT Advisory, 10 Apr 2024): Avoid unverified 'health drinks' labels in digital commerce copy.",
+        "severity": "HIGH"
+      }
+    ],
+    "absoluteClaimRules": [
+      {
+        "ruleId": "CLAIM-101",
+        "pattern": "Guaranteed Auto",
+        "suggestion": "Rapid auto-matching subject to partner availability",
+        "citation": "Regulatory Rule Pack (CCPA Order, 20 Aug 2025): Absolute 'Guaranteed' service claims without conditions violate consumer protection standards.",
+        "severity": "HIGH"
+      },
+      {
+        "ruleId": "CLAIM-102",
+        "pattern": "100% guaranteed",
+        "suggestion": "designed for high reliability based on benchmark testing",
+        "citation": "Guideline p.7, §4.1 (ASCI Code Alignment): Absolute 100% guarantees are prohibited unless backed by an attached independent certification.",
+        "severity": "HIGH"
+      },
+      {
+        "ruleId": "CLAIM-103",
+        "pattern": "zero risk",
+        "suggestion": "mitigated risk with human-in-the-loop oversight",
+        "citation": "Guideline p.8, §4.3: Never claim 'zero risk' or 'zero hallucination'; always state outputs are grounded and human-reviewable.",
+        "severity": "HIGH"
+      }
+    ],
+    "approvedSources": [
+      {
+        "sourceId": "SRC-2026-01",
+        "title": "Q4 Verified Performance Benchmark",
+        "owner": "Arnav Verma (Product Analytics)",
+        "expiryDate": "2027-03-31",
+        "status": "Active",
+        "excerpt": "BrandGuard reduces routine line-item compliance checks by 50% and delivers first feedback in under 1 minute across seeded drafts."
+      },
+      {
+        "sourceId": "SRC-2025-04",
+        "title": "Legacy Pricing & SLA Policy (2024)",
+        "owner": "Harshita Khandelwal (Policy Lead)",
+        "expiryDate": "2025-12-31",
+        "status": "Expired / Stale",
+        "excerpt": "Legacy 2024 discount policy offering 40% bereavement or instant refund rebates via automated chat."
+      },
+      {
+        "sourceId": "SRC-2026-02",
+        "title": "Enterprise Security & Residency Spec",
+        "owner": "Rudransh (Security Architect)",
+        "expiryDate": "2027-06-30",
+        "status": "Conflicting",
+        "excerpt": "Note: Document v1.1 states data residency is Mumbai-only, while v1.2 states multi-region India + EU hosting. Escalate residency claims to Fact Owner."
+      }
+    ]
+  }
