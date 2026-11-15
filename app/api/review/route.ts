@@ -5,7 +5,13 @@ import guidelines from '@/lib/guidelines.json';
 export interface GovernanceFinding {
   id: string;
   layer: 'Layer A: Deterministic' | 'Layer B: Grounded AI';
-  category: 'TERMINOLOGY' | 'ABSOLUTE CLAIM' | 'DISCLOSURE' | 'ACCESSIBILITY' | 'FACT & SOURCE CHECK' | 'TONE & NUANCE';
+  category:
+    | 'TERMINOLOGY'
+    | 'ABSOLUTE CLAIM'
+    | 'DISCLOSURE'
+    | 'ACCESSIBILITY'
+    | 'FACT & SOURCE CHECK'
+    | 'TONE & NUANCE';
   severity: 'HIGH' | 'MEDIUM' | 'LOW';
   confidence: number;
   ruleId: string;
@@ -21,11 +27,18 @@ export interface GovernanceFinding {
   suggestion: string;
 }
 
-// Helper: Calculate WCAG 2.1 relative luminance and contrast ratio
+// Helper: Calculate WCAG 2.2 relative luminance and contrast ratio
 function getContrastRatio(hex1: string, hex2: string): number {
   const toRgb = (hex: string) => {
-    const clean = hex.replace('#', '');
-    const num = parseInt(clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean, 16);
+    const clean = hex.replace('#', '').trim();
+    const expanded =
+      clean.length === 3
+        ? clean
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : clean;
+    const num = parseInt(expanded || '000000', 16);
     return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
   };
   const getLuminance = (rgb: number[]) => {
@@ -59,7 +72,7 @@ function runLayerADeterministic(
 ): GovernanceFinding[] {
   const findings: GovernanceFinding[] = [];
 
-  // 1. Terminology Rules (e.g., Clients -> Partners, Guideline p.4)
+  // 1. Terminology Rules (Guideline p.4 & Regulatory Packs)
   for (const rule of guidelines.terminologyRules) {
     const regex = new RegExp(`\\b${rule.wrong}\\b`, 'i');
     const match = draftText.match(regex);
@@ -99,7 +112,47 @@ function runLayerADeterministic(
     }
   }
 
-  // 3. Mandatory Disclaimers (#Ad / AI labels)
+  // 3. Additional Off-Brand Aggressive / Superlative Tone Checks
+  const extraToneRules = [
+    {
+      id: 'TONE-201',
+      regex: /\b(cheap|cheapest|dirt cheap)\b/i,
+      suggestion: 'cost-effective',
+      rule: 'Guideline p.3, §1.2: Avoid "cheap" as it dilutes enterprise trust; use "cost-effective" or "accessible pricing".',
+    },
+    {
+      id: 'TONE-202',
+      regex: /\b(hack|loophole|secret trick)\b/i,
+      suggestion: 'streamlined workflow',
+      rule: 'Guideline p.3, §1.4: Never describe enterprise governance processes as a "hack" or "loophole".',
+    },
+    {
+      id: 'CLAIM-104',
+      regex: /\b(best in the world|world's #1|unbeatable)\b/i,
+      suggestion: 'industry-benchmarked',
+      rule: 'ASCI Code §1.4 (Unverifiable Superlative): Comparative superlatives require independent national survey backing.',
+    },
+  ];
+
+  for (const tRule of extraToneRules) {
+    const match = draftText.match(tRule.regex);
+    if (match) {
+      findings.push({
+        id: `la-tone-${tRule.id}`,
+        layer: 'Layer A: Deterministic',
+        category: 'TONE & NUANCE',
+        severity: 'MEDIUM',
+        confidence: 0.96,
+        ruleId: tRule.id,
+        claimStatus: 'Supported',
+        originalText: match[0],
+        brokenRule: tRule.rule,
+        suggestion: tRule.suggestion,
+      });
+    }
+  }
+
+  // 4. Mandatory Disclaimers (#Ad / AI labels)
   if (options.isPaidPromo && !/#ad\b|#sponsored\b|paid partnership/i.test(draftText)) {
     findings.push({
       id: 'la-disc-ad',
@@ -112,7 +165,7 @@ function runLayerADeterministic(
       originalText: '[Missing #Ad / Paid Promotion Disclosure]',
       brokenRule:
         'ASCI Digital Influencer & Ad Disclosure Rule (§3.1): Paid or sponsored promotions must explicitly include #Ad or Paid Partnership at the beginning of the copy.',
-        suggestion: 'Prepend "#Ad • " disclosure to copy',
+      suggestion: 'Prepend "#Ad • " disclosure to copy',
     });
   }
 
@@ -128,11 +181,11 @@ function runLayerADeterministic(
       originalText: '[Missing AI Transparency Label]',
       brokenRule:
         'BrandGuard Responsible Design Policy (§1.4): Content created or modified using generative AI must carry a transparent AI disclosure label.',
-        suggestion: 'Append "[AI-Assisted Content]" label to copy',
+      suggestion: 'Append "[AI-Assisted Content]" label to copy',
     });
   }
 
-  // 4. WCAG 4.5:1 Contrast & Alt-Text Presence
+  // 5. WCAG 4.5:1 Contrast & Alt-Text Presence
   if (options.fgHex && options.bgHex) {
     const ratio = getContrastRatio(options.fgHex, options.bgHex);
     if (ratio < 4.5) {
@@ -173,15 +226,17 @@ function runLayerADeterministic(
 function runLayerBGroundedFallback(draftText: string): GovernanceFinding[] {
   const findings: GovernanceFinding[] = [];
 
-  // Stale / Expired source check (e.g., 2024 bereavement / 40% instant rebate policy)
+  // Stale / Expired source check (SRC-2025-04)
   if (/40%\s+(rebate|discount|refund)|2024\s+policy|bereavement/i.test(draftText)) {
-    const match = draftText.match(/[^.?!]*(40%\s+(rebate|discount|refund)|2024\s+policy|bereavement)[^.?!]*[.?!]?/i);
+    const match = draftText.match(
+      /[^.?!]*(40%\s+(rebate|discount|refund)|2024\s+policy|bereavement)[^.?!]*[.?!]?/i
+    );
     findings.push({
       id: 'lb-stale-source',
       layer: 'Layer B: Grounded AI',
       category: 'FACT & SOURCE CHECK',
       severity: 'HIGH',
-      confidence: 0.91,
+      confidence: 0.92,
       ruleId: 'SRC-2025-04 (Expired)',
       claimStatus: 'Potentially stale',
       originalText: match ? match[0].trim() : '40% instant refund policy',
@@ -191,15 +246,17 @@ function runLayerBGroundedFallback(draftText: string): GovernanceFinding[] {
     });
   }
 
-  // Conflicting source check (e.g., data residency Mumbai-only vs EU)
+  // Conflicting source check (SRC-2026-02)
   if (/mumbai-only|data residency|eu hosting|100%\s+local\s+servers/i.test(draftText)) {
-    const match = draftText.match(/[^.?!]*(mumbai-only|data residency|eu hosting|100%\s+local\s+servers)[^.?!]*[.?!]?/i);
+    const match = draftText.match(
+      /[^.?!]*(mumbai-only|data residency|eu hosting|100%\s+local\s+servers)[^.?!]*[.?!]?/i
+    );
     findings.push({
       id: 'lb-conflict-source',
       layer: 'Layer B: Grounded AI',
       category: 'FACT & SOURCE CHECK',
       severity: 'HIGH',
-      confidence: 0.88,
+      confidence: 0.89,
       ruleId: 'SRC-2026-02 (Conflict)',
       claimStatus: 'Conflicting evidence',
       originalText: match ? match[0].trim() : 'Data residency claim',
@@ -211,31 +268,36 @@ function runLayerBGroundedFallback(draftText: string): GovernanceFinding[] {
 
   // Unsupported numerical or superlative claims not in SRC-2026-01
   if (/\b(10x|99\.9%|50\s+million|#1\s+in\s+india|overnight)\b/i.test(draftText)) {
-    const match = draftText.match(/[^.?!]*\b(10x|99\.9%|50\s+million|#1\s+in\s+india|overnight)\b[^.?!]*[.?!]?/i);
+    const match = draftText.match(
+      /[^.?!]*\b(10x|99\.9%|50\s+million|#1\s+in\s+india|overnight)\b[^.?!]*[.?!]?/i
+    );
     findings.push({
       id: 'lb-unsupported-claim',
       layer: 'Layer B: Grounded AI',
       category: 'FACT & SOURCE CHECK',
       severity: 'HIGH',
-      confidence: 0.89,
+      confidence: 0.91,
       ruleId: 'SRC-2026-01 (Unverified)',
       claimStatus: 'Unsupported in library',
       originalText: match ? match[0].trim() : 'Unverified performance claim',
       brokenRule:
         'Unsupported in Library: No approved source document backs this claim. Approved Source SRC-2026-01 only verifies a ">=50% reduction in routine line-item checks and <1 min feedback time".',
-      suggestion: 'We deliver first compliance feedback in under 1 minute and reduce routine checks by over 50% (Source: SRC-2026-01).',
+      suggestion:
+        'We deliver first compliance feedback in under 1 minute and reduce routine checks by over 50% (Source: SRC-2026-01).',
     });
   }
 
   // Out of scope market/date check
   if (/\b(us\s+fda\s+approved|eu\s+medical\s+device|crypto\s+yield)\b/i.test(draftText)) {
-    const match = draftText.match(/[^.?!]*\b(us\s+fda\s+approved|eu\s+medical\s+device|crypto\s+yield)\b[^.?!]*[.?!]?/i);
+    const match = draftText.match(
+      /[^.?!]*\b(us\s+fda\s+approved|eu\s+medical\s+device|crypto\s+yield)\b[^.?!]*[.?!]?/i
+    );
     findings.push({
       id: 'lb-out-of-scope',
       layer: 'Layer B: Grounded AI',
       category: 'FACT & SOURCE CHECK',
       severity: 'MEDIUM',
-      confidence: 0.86,
+      confidence: 0.87,
       ruleId: 'SCOPE-MKT-01',
       claimStatus: 'Out of scope',
       originalText: match ? match[0].trim() : 'Out-of-scope market claim',
@@ -249,9 +311,13 @@ function runLayerBGroundedFallback(draftText: string): GovernanceFinding[] {
 }
 
 // Findings Merger: Deduplicate & sort by Severity and Confidence
-function mergeFindings(layerA: GovernanceFinding[], layerB: GovernanceFinding[]): GovernanceFinding[] {
+function mergeFindings(
+  layerA: GovernanceFinding[],
+  layerB: GovernanceFinding[]
+): GovernanceFinding[] {
   const merged = [...layerA];
   for (const itemB of layerB) {
+    if (!itemB.originalText) continue;
     const isDuplicate = merged.some(
       (itemA) =>
         itemA.originalText.toLowerCase().includes(itemB.originalText.toLowerCase()) ||
@@ -262,7 +328,9 @@ function mergeFindings(layerA: GovernanceFinding[], layerB: GovernanceFinding[])
     }
   }
   const severityRank = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-  return merged.sort((a, b) => severityRank[b.severity] - severityRank[a.severity] || b.confidence - a.confidence);
+  return merged.sort(
+    (a, b) => severityRank[b.severity] - severityRank[a.severity] || b.confidence - a.confidence
+  );
 }
 
 export async function POST(req: Request) {
@@ -288,7 +356,7 @@ export async function POST(req: Request) {
       hasImage,
     });
 
-    // Step 4: Layer B Grounded AI Check (with deterministic grounded fallback)
+    // Step 4: Layer B Grounded AI Check
     let layerBFindings = runLayerBGroundedFallback(draftText);
     let engineName = 'BrandGuard Hybrid (Layer A Rules + Layer B Grounded Engine)';
 
@@ -301,10 +369,16 @@ export async function POST(req: Request) {
         Do NOT invent facts. Classify every finding using one of these exact claimStatus values:
         "Supported", "Unsupported in library", "Conflicting evidence", "Potentially stale", "Out of scope", or "Needs human judgement".
         Return ONLY a JSON array of objects with keys:
-        originalText, brokenRule (must cite Rule ID or Source ID and page), suggestion, severity ("HIGH"|"MEDIUM"|"LOW"), confidence (0.70 to 0.98), ruleId, claimStatus.
+        originalText (exact substring from user draft), brokenRule (must cite Rule ID or Source ID), suggestion (on-brand replacement phrase), severity ("HIGH"|"MEDIUM"|"LOW"), confidence (0.75 to 0.98), ruleId, claimStatus.
       `;
 
-      for (const modelName of ['gemini-2.0-flash', 'gemini-1.5-flash']) {
+      const candidateModels = [
+        'gemini-3.0-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-2.0-flash',
+      ];
+
+      for (const modelName of candidateModels) {
         try {
           const response = await ai.models.generateContent({
             model: modelName,
@@ -322,19 +396,19 @@ export async function POST(req: Request) {
               layer: 'Layer B: Grounded AI',
               category: 'FACT & SOURCE CHECK',
               severity: item.severity || 'MEDIUM',
-              confidence: typeof item.confidence === 'number' ? item.confidence : 0.88,
+              confidence: typeof item.confidence === 'number' ? item.confidence : 0.9,
               ruleId: item.ruleId || 'SRC-LIB-AI',
               claimStatus: item.claimStatus || 'Unsupported in library',
               originalText: item.originalText || '',
               brokenRule: item.brokenRule || 'Unverified claim against approved library.',
               suggestion: item.suggestion || '',
             }));
-            layerBFindings = [...layerBFindings, ...mappedAi];
+            layerBFindings = mergeFindings(layerBFindings, mappedAi);
             engineName = `Layer A Deterministic + Layer B (${modelName})`;
             break;
           }
         } catch {
-          // Gracefully continue with grounded fallback
+          // Try next model or use deterministic grounded engine
         }
       }
     }
